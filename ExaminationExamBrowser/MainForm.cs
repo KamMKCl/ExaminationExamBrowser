@@ -25,7 +25,7 @@ namespace ExamBrowserV2
 
             // Read settings using the new config object
             string cmsUrl = _config["AppSettings:CMS_Url"];
-            string examUrl = _config["AppSettings:Exam_Url"];
+            string examUrl = (_config["AppSettings:Exam_Url"] ?? cmsUrl).Trim();
 
             // Set form properties for kiosk mode
             this.FormBorderStyle = FormBorderStyle.None;
