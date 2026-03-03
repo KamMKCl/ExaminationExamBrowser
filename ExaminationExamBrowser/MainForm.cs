@@ -25,8 +25,19 @@ namespace ExamBrowserV2
 
             // Read settings using the new config object
             string cmsUrl = _config["AppSettings:CMS_Url"];
+
+            if (!cmsUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !cmsUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                cmsUrl = "http://" + cmsUrl;
+            }
             string examUrl = (_config["AppSettings:Exam_Url"] ?? cmsUrl).Trim();
 
+            if (!examUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !examUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                examUrl = "http://" + examUrl;
+            }
             // Set form properties for kiosk mode
             this.FormBorderStyle = FormBorderStyle.None;
             this.WindowState = FormWindowState.Maximized;
