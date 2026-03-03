@@ -83,9 +83,9 @@ namespace ExamBrowserV2
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             SuspendLayout();
-            //
+            // 
             // MainForm
-            //
+            // 
             ClientSize = new Size(1067, 922);
             Cursor = Cursors.Hand;
             Icon = (Icon)resources.GetObject("$this.Icon");

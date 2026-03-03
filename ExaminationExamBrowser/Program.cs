@@ -14,33 +14,9 @@ namespace ExaminationExamBrowser
         [STAThread]
         private static void Main(string[] args)
         {
-            //string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            //string appFolder = Path.Combine(appDataPath, "ExamBrowser");
-            //string settingsFilePath = Path.Combine(appFolder, "appsettings.json");
-
-            //// Check if the configuration file exists
-            //if (!File.Exists(settingsFilePath))
-            //{
-            //    // If it doesn't exist, this is the first run.
-            //    // Show the settings form to get the required data.
-            //    Application.EnableVisualStyles();
-            //    Application.SetCompatibleTextRenderingDefault(false);
-
-            //    using (var settingsForm = new SettingsForm())
-            //    {
-            //        if (settingsForm.ShowDialog() != DialogResult.OK)
-            //        {
-            //            // If the user closes the settings form without saving, exit the app.
-            //            return;
-            //        }
-            //    }
-            //}
-
-            //var config = new ConfigurationBuilder()
-            //   .AddJsonFile(path: settingsFilePath, optional: false, reloadOnChange: true)
-            //   .Build();
 
             var config = new ConfigurationBuilder()
+               .SetBasePath(AppContext.BaseDirectory)
                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                .Build();
 
