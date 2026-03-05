@@ -10,7 +10,7 @@ namespace ExamBrowserV2
     {
         private IConfiguration _config;
         private WebView2 webView;
-        //private Button exitButton;
+        private Label loadingLabel; // NEW: Loading screen label
 
         // Import necessary Win32 API
         [DllImport("user32.dll")]
@@ -23,8 +23,22 @@ namespace ExamBrowserV2
             InitializeComponent();
             _config = config;
 
+            // NEW: Set a dark background color to prevent the white flash
+            this.BackColor = Color.FromArgb(32, 33, 36); // Dark gray/black
+
+            // NEW: Create a professional loading text while the browser engine spins up
+            loadingLabel = new Label
+            {
+                Text = "Loading Secure Browser...",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            this.Controls.Add(loadingLabel);
+
             // Read settings using the new config object
-            string cmsUrl = _config["AppSettings:CMS_Url"];
+            string cmsUrl = (_config["AppSettings:CMS_Url"] ?? "about:blank").Trim();
 
             if (!cmsUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
                 !cmsUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
@@ -38,6 +52,7 @@ namespace ExamBrowserV2
             {
                 examUrl = "http://" + examUrl;
             }
+
             // Set form properties for kiosk mode
             this.FormBorderStyle = FormBorderStyle.None;
             this.WindowState = FormWindowState.Maximized;
@@ -46,16 +61,13 @@ namespace ExamBrowserV2
 
             // Initialize WebView with the URL from config
             InitializeWebView(cmsUrl, examUrl);
-            //InitializeExitButton();
+
             // Handle form closing to prevent Alt+F4
             this.FormClosing += MainForm_FormClosing;
 
             // Add activation handler to detect when form loses and regains focus
             this.Activated += MainForm_Activated;
             this.Deactivate += MainForm_Deactivate;
-
-            // Handle key press events - IMPORTANT FOR CTRL+Q
-            webView.KeyDown += MainForm_KeyDown;
 
             // Create a timer to keep the form on top
             System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
@@ -98,7 +110,7 @@ namespace ExamBrowserV2
             // MainForm
             // 
             ClientSize = new Size(1067, 922);
-            Cursor = Cursors.Hand;
+            Cursor = Cursors.WaitCursor; // Use wait cursor while loading
             Icon = (Icon)resources.GetObject("$this.Icon");
             KeyPreview = true;
             Margin = new Padding(4, 5, 4, 5);
@@ -129,6 +141,8 @@ namespace ExamBrowserV2
         {
             webView = new WebView2();
             webView.Dock = DockStyle.Fill;
+            webView.Visible = false; // NEW: Hide the browser while it's loading to prevent white flash
+            webView.DefaultBackgroundColor = Color.FromArgb(32, 33, 36); // Match background
             this.Controls.Add(webView);
 
             try
@@ -155,7 +169,7 @@ namespace ExamBrowserV2
 
                 options.AdditionalBrowserArguments = arguments;
 
-                // 1. Get the path to the user's local app data folder (e.g., C:\Users\YourUser\AppData\Local)
+                // 1. Get the path to the user's local app data folder
                 string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
                 // 2. Create a specific folder for your application's data inside it
@@ -173,6 +187,9 @@ namespace ExamBrowserV2
                 webView.CoreWebView2.Settings.IsPasswordAutosaveEnabled = true;
                 webView.CoreWebView2.Settings.IsScriptEnabled = true;
 
+                // IMPORTANT: Handle key press events - IMPORTANT FOR CTRL+Q
+                webView.KeyDown += MainForm_KeyDown;
+
                 // IMPORTANT: Handle certificate errors and security warnings
                 webView.CoreWebView2.ServerCertificateErrorDetected += (sender, args) =>
                 {
@@ -186,12 +203,16 @@ namespace ExamBrowserV2
                     args.State = CoreWebView2PermissionState.Allow;
                 };
 
-                // Handle navigation errors
+                // Handle navigation errors AND Hide Loading Screen
                 webView.CoreWebView2.NavigationCompleted += (sender, args) =>
                 {
+                    // NEW: The exact millisecond the page finishes loading, hide the loading text and show the page!
+                    loadingLabel.Visible = false;
+                    webView.Visible = true;
+                    this.Cursor = Cursors.Default; // Reset cursor back to normal arrow
+
                     if (!args.IsSuccess)
                     {
-                        // Handle navigation failure - could retry or show custom error
                         Console.WriteLine($"Navigation failed: {args.WebErrorStatus}");
                     }
                 };
@@ -201,14 +222,6 @@ namespace ExamBrowserV2
                 {
                     args.Handled = true;
                 };
-
-                // Add custom headers if needed for authentication
-                var headers = webView.CoreWebView2.Environment.CreateWebResourceRequest(
-                    "GET",
-                    "file:///C:/Users/Victus/Desktop/speak.html",
-                    null,
-                    null
-                );
 
                 // Navigate to the URL
                 webView.CoreWebView2.Navigate(CMS_url);
@@ -221,9 +234,6 @@ namespace ExamBrowserV2
 
         public void MainForm_KeyDown(object sender, KeyEventArgs e)
         {
-            // Debug code - uncomment to see what keys are being pressed
-            //MessageBox.Show($"Key pressed: {e.KeyCode}, Control: {e.Control}");
-
             // Check for exit shortcut Ctrl+Q
             if (e.Control && e.KeyCode == Keys.Q)
             {
@@ -234,7 +244,7 @@ namespace ExamBrowserV2
                 return;
             }
 
-            // Block Alt+F4 (redundant as it's also handled by SecurityManager)
+            // Block Alt+F4
             if (e.Alt && e.KeyCode == Keys.F4)
             {
                 e.Handled = true;
@@ -330,44 +340,5 @@ namespace ExamBrowserV2
         private void MainForm_Load(object sender, EventArgs e)
         {
         }
-
-        //    private void InitializeExitButton()
-        //    {
-        //        exitButton = new Button
-        //        {
-        //            Text = "X",
-        //            BackColor = Color.Red,
-        //            ForeColor = Color.White,
-        //            FlatStyle = FlatStyle.Flat,
-        //            Width = 60,
-        //            Height = 25,
-        //            Anchor = AnchorStyles.Top | AnchorStyles.Right // This keeps it on the right
-        //        };
-        //        exitButton.Font = new Font(exitButton.Font, FontStyle.Bold);
-        //        exitButton.Click += (sender, e) => ShowPasswordForm();
-
-        //        // Add to the form (not the WebView)
-        //        this.Controls.Add(exitButton);
-
-        //        // Bring to front so it's always visible
-        //        exitButton.BringToFront();
-
-        //        // Position it (adjust padding as needed)
-        //        exitButton.Location = new Point(
-        //            this.ClientSize.Width - exitButton.Width - 5,
-        //            5);
-        //    }
-
-        //    // Handle form resize to keep button in correct position
-        //    protected override void OnResize(EventArgs e)
-        //    {
-        //        base.OnResize(e);
-        //        if (exitButton != null)
-        //        {
-        //            exitButton.Location = new Point(
-        //                this.ClientSize.Width - exitButton.Width - 5,
-        //                5);
-        //        }
-        //    }
     }
 }
