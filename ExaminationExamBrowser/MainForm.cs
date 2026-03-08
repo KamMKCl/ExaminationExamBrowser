@@ -157,7 +157,7 @@ namespace ExamBrowserV2
                     "--enable-features=InsecurePrivateNetwork " +
                     "--disable-web-security " +                    // Disable web security checks
                     "--allow-running-insecure-content " +          // Allow mixed content
-                    "--disable-features=VizDisplayCompositor " +   // Prevent some security dialogs
+                   "--disable-features=VizDisplayCompositor,CalculateNativeWinOcclusion,RendererBackgrounding " +// Prevent some security dialogs
                     "--ignore-ssl-errors " +                       // Ignore SSL certificate errors
                     "--ignore-certificate-errors " +               // Ignore certificate errors
                     "--ignore-urlfetcher-cert-requests " +         // Ignore cert requests
@@ -183,9 +183,13 @@ namespace ExamBrowserV2
                 webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
                 webView.CoreWebView2.Settings.IsBuiltInErrorPageEnabled = false;
-                webView.CoreWebView2.Settings.IsGeneralAutofillEnabled = true;
-                webView.CoreWebView2.Settings.IsPasswordAutosaveEnabled = true;
+                webView.CoreWebView2.Settings.IsGeneralAutofillEnabled = false;
+                webView.CoreWebView2.Settings.IsPasswordAutosaveEnabled = false;
+                webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
                 webView.CoreWebView2.Settings.IsScriptEnabled = true;
+
+                //Clear old session cookies every time the app opens
+                await webView.CoreWebView2.Profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.Cookies);
 
                 // IMPORTANT: Handle key press events - IMPORTANT FOR CTRL+Q
                 webView.KeyDown += MainForm_KeyDown;
@@ -241,6 +245,14 @@ namespace ExamBrowserV2
                 ShowPasswordForm();
                 e.Handled = true;
                 e.SuppressKeyPress = true; // Prevent the key from being processed further
+                return;
+            }
+
+            // Block Ctrl+F just in case
+            if (e.Control && e.KeyCode == Keys.F)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
                 return;
             }
 
